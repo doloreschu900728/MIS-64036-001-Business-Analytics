@@ -1,0 +1,112 @@
+---
+title: "zchu_BA_Assignment_2"
+author: "Dolores Chu"
+date: "11/7/2019"
+output: html_document
+---
+##### 1.	Run the following code in R-studio to create two variables X and Y.
+```{r}
+set.seed(2017)
+X=runif(100)*10
+Y=X*4+3.45
+Y=rnorm(100)*0.29*Y+Y
+```
+
+##### a)	Plot Y against X. Include a screenshot of the plot in your submission. Using the File menu you can save the graph as a picture on your computer.  Based on the plot do you think we can fit a linear model to explain Y based on X? (5 Marks)  
+Base on the plot, I do think we can possibly fit a linear model to explain Y based on X.
+```{r}
+plot(Y~X)
+```
+
+
+##### b)	Construct a simple linear model of Y based on X. Write the equation that explains Y based on X. What is the accuracy of this model? (5 Marks)  
+Equation: Y = 3.6108X +   4.4655 
+Multiple R-squared is 0.6517, which means about 65% of the variance is explained by this model. 
+```{r}
+data <- data.frame(X, Y)
+Model = lm(Y~X, data = data)
+summary(Model)
+```
+
+##### c)	How the Coefficient of Determination, R2, of the model above is related to the correlation coefficient of X and Y? (5 marks)  
+Because this linaer model has only one variable, the Coefficient of Determination of the model = (correlation coefficient)^2
+
+##### d)	Investigate the appropriateness of using linear regression for this case (10 Marks). You may also find the story [here](http://blog.minitab.com/blog/statistics-and-quality-data-analysis/violations-of-the-assumptions-for-linear-regression-the-trial-of-lionel-loosefit-day-1) relevant. 
+##### More useful hints: #residual analysis, #pattern of residuals, #normality of residuals.  
+As shown by the below plots, the residuals of this moedel appear to be roughly normal in distributuion. It seems though, that as X increases, the absolute values of residuals are increasing, which can be a violation to the independence of residuals. This means lineaer model might not be the best choice here. 
+```{r}
+plot(data$X, Model$residuals, xlab = "X", ylab = "Residuals")
+hist(Model$residuals)
+```
+
+
+##### 2.	We will use the ‘mtcars’ dataset for this question. The dataset is already included in your R distribution. The dataset shows some of the characteristics of different cars. The following shows few samples (i.e. the first 6 rows) of the dataset. The description of the dataset can be found here.
+```{r}
+head(mtcars)
+```
+
+##### a)	James wants to buy a car.  He and his friend, Chris, have different opinions about the Horse Power (hp) of cars. James think the weight of a car (wt) can be used to estimate the Horse Power of the car while Chris thinks the fuel consumption expressed in Mile Per Gallon (mpg), is a better estimator of the (hp). Who do you think is right? Construct simple linear models using mtcars data to answer the question. (10 marks)  
+Based on the R-squared of each model, mpg is a better estimator (explains about 58% of the variance) than weight (explains about 41% of the vairance).
+```{r}
+Model_wt = lm(hp~wt, data = mtcars)
+Model_mpg = lm(hp~mpg, data = mtcars)
+summary(Model_wt)
+summary(Model_mpg)
+```
+
+b)	Build a model that uses the number of cylinders (cyl) and the mile per gallon (mpg) values of a car to predict the car Horse Power (hp). 
+```{r}
+Model_cyl_mpg = lm(hp~cyl+mpg, data = mtcars)
+summary(Model_cyl_mpg)
+```
+
+
+##### I.	Using this model, what is the estimated Horse Power of a car with 4 calendar and mpg of 22? (5 mark)  
+The linear euqaltion of the above model is: hp = 23.979 cly - 2.775 mpg + 54.067.
+Based on this equation, a car with 4 calendar and mpg of 22 has an estimated Hourse Power of 88.94.
+```{r}
+predict(Model_cyl_mpg, data.frame(mpg = c(22), cyl = c(4)))
+```
+
+II.	Construct an 85% confidence interval of your answer in the above question. Hint: use the predict function (5 mark)  
+```{r}
+predict(Model_cyl_mpg, data.frame(mpg = c(22), cyl = c(4)), interval = "prediction", level = 0.85)
+```
+
+##### 3.	For this question, we are going to use BostonHousing dataset. The dataset is in ‘mlbench’ package, so we first need to instal the package, call the library and the load the dataset using the following commands
+```{r}
+#install.packages('mlbench')
+library(mlbench)
+data(BostonHousing)
+```
+
+##### a)	Build a model to estimate the median value of owner-occupied homes (medv)based on the following variables: crime rate (crim), proportion of residential land zoned for lots over 25,000 sq.ft (zn), the local pupil-teacher ratio (ptratio) and weather the whether the tract bounds Chas River(chas). Is this an accurate model? (Hint check R2 ) (5 marks)  
+The R-Squared for this model is only 0.35, which means the model is only able to explain 35% of the variance. This model is not very accurate.
+```{r}
+Model <- lm(medv~crim+zn+ptratio+chas, data = BostonHousing)
+summary(Model)
+```
+
+##### b)	Use the estimated coefficient to answer these questions
+
+##### I.	Imagine two houses that are identical in all aspects but one bounds the Chas River and the other does not. Which one is more expensive and by how much? (5 marks)  
+The one bounds the Chas River will be more expenvie by $4.58k. 
+
+##### II.	Imagine two houses that are identical in all aspects but in the neighborhood of one of them the pupil-teacher ratio is 15 and in the other one is 18. Which one is more expensive and by how much? (Golden Question: 10 extra marks if you answer)  
+The one with the pulpil-teacher ratio of 15 will be more espensive by $4.48K.
+```{r}
+Price_Difference = -1.49367 * (15-18)
+print(Price_Difference)
+```
+
+##### c)	Which of the variables are statistically important (i.e. related to the house price)? Hint: use the p-values of the coefficients to answer.(5 mark)  
+All 4 variables are statistically significant with p-values < 0.001. 
+
+##### d)	Use the anova analysis and determine the order of importance of these four variables.(5 marks)  
+Based on the ANOVA results, the order of importance of these four variabels is:
+Crime Rate > Pilpul-Teacher-Ratio > Proportion of Residential Land Zoned for Lots over 25,000 sq.ft > Whether the Tract Bounds Chas River
+```{r}
+anova(Model)
+```
+
+
