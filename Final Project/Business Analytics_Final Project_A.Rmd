@@ -1,0 +1,14 @@
+---
+title: "Business Analytics_Final Project_A"
+author: "Dolores Chu, Charity Elijah, Cameron Croghan, Saleh"
+date: "11/27/2019"
+output: html_document
+---
+
+First, load library and read in data. 
+```{r}
+library(C50)
+data(churn)
+remove(churnTest)
+```
+
