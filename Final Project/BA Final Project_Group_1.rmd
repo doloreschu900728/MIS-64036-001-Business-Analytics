@@ -1,0 +1,143 @@
+---
+title: "Business Analytics_Final Project_A"
+author: "Dolores Chu, Charity Elijah, Cameron Croghan, Saleh"
+date: "11/27/2019"
+output: html_document
+---
+
+First, load library and read in data. Checking to see how many observation/vairables are in the dataset.
+```{r}
+library(C50)
+data(churn)
+remove(churnTest)
+nrow(churnTrain)
+colnames(churnTrain)
+str(churnTrain)
+```
+
+Checking for missing value-- there is no missing value!
+```{r}
+summary(is.na(churnTrain))
+```
+
+Data exploration.
+```{r}
+str(churnTrain)
+summary(churnTrain)
+```
+
+In order to evaluate data performance and make adjustment, we split the traininng data into 2:a training set(80%) and a validation set(20%)
+```{r}
+library(caret)
+set.seed(123)
+Train_index <- createDataPartition(churnTrain$churn,p=0.8,list = FALSE)
+Data_Train <- churnTrain[Train_index,]
+Data_Validation <- churnTrain[-Train_index,]
+```
+
+Model_1 used all predictors except for state. Logistic regression models do not handle categorical vairables with a large amount of possible values very well. In addition, this variable does not have so much theoretical importance since we don't care too much about differentiating between states.
+```{r}
+library(ISLR)
+Model_1 = glm(churn~account_length+area_code+international_plan+voice_mail_plan+number_vmail_messages+total_day_minutes+total_day_calls+total_day_charge+total_eve_minutes+total_eve_calls+total_eve_charge+total_night_minutes+total_night_calls+total_night_charge+total_intl_minutes+total_intl_calls+total_intl_charge+number_customer_service_calls, family = "binomial", data = Data_Train)
+summary(Model_1)
+Predicted_label_1<- predict(Model_1, newdata = Data_Validation, type = "response")
+head(Predicted_label_1)
+Predicted_values_1 <- as.factor(Predicted_label_1 > 0.5)
+head(Predicted_values_1)
+levels(Predicted_values_1) <- list(Yes = "FALSE", No = "TRUE")
+Confusion_matrix_1 <-table(Predicted_1 = Predicted_values_1, Actual = Data_Validation$churn)
+summary(Model_1)
+library(pROC)
+roc(Data_Validation$churn, Predicted_label_1)
+```
+
+Model_1.1 takes out area code as well.
+```{r}
+library(ISLR)
+Model_1.1 = glm(churn~account_length+international_plan+voice_mail_plan+number_vmail_messages+total_day_minutes+total_day_calls+total_day_charge+total_eve_minutes+total_eve_calls+total_eve_charge+total_night_minutes+total_night_calls+total_night_charge+total_intl_minutes+total_intl_calls+total_intl_charge+number_customer_service_calls, family = "binomial", data = Data_Train)
+summary(Model_1.1)
+Predicted_label_1.1<- predict(Model_1.1, newdata = Data_Validation, type = "response")
+head(Predicted_label_1.1)
+Predicted_values_1.1 <- as.factor(Predicted_label_1.1 > 0.5)
+head(Predicted_values_1.1)
+levels(Predicted_values_1.1) <- list(Yes = "FALSE", No = "TRUE")
+Confusion_matrix_1.1 <-table(Predicted_1.1 = Predicted_values_1.1, Actual = Data_Validation$churn)
+summary(Model_1.1)
+roc(Data_Validation$churn, Predicted_label_1.1)
+```
+
+Model_1.2 takes out co-variants.
+```{r}
+library(ISLR)
+Model_1.2 = glm(churn~account_length+international_plan+voice_mail_plan+number_vmail_messages+total_day_minutes+total_day_calls+total_eve_minutes+total_eve_calls+total_night_minutes+total_night_calls+total_intl_minutes+total_intl_calls+number_customer_service_calls, family = "binomial", data = Data_Train)
+summary(Model_1.2)
+Predicted_label_1.2<- predict(Model_1.2, newdata = Data_Validation, type = "response")
+head(Predicted_label_1.2)
+Predicted_values_1.2 <- as.factor(Predicted_label_1.2 > 0.5)
+head(Predicted_values_1.2)
+levels(Predicted_values_1.2) <- list(Yes = "FALSE", No = "TRUE")
+Confusion_matrix_1.2 <-table(Predicted_1.2 = Predicted_values_1.2, Actual = Data_Validation$churn)
+summary(Model_1.2)
+library(pROC)
+roc(Data_Validation$churn, Predicted_label_1.2)
+```
+
+Based on Model_1.2, we take out the variables that are not statistically significant for the sake of model simplicity. We will see whether this changes the performance of the model significantly. 
+It seems that Model_1.2 actually performans better based on AUC.
+
+```{r}
+Model_2 = glm(churn~international_plan+voice_mail_plan+total_day_minutes+total_eve_minutes+total_night_minutes+total_intl_minutes+total_intl_calls+number_customer_service_calls, family = "binomial", data = Data_Train)
+summary(Model_2)
+Predicted_label_2 <- predict(Model_2, newdata = Data_Validation, type = "response")
+head(Predicted_label_2)
+Predicted_values_2 <- as.factor(Predicted_label_2 > 0.5)
+head(Predicted_values_2)
+levels(Predicted_values_2) <- list(Yes = "FALSE", No = "TRUE")
+Confusion_matrix_2 <- table(Predicted_2 = Predicted_values_2, Actual = Data_Validation$churn)
+roc(Data_Validation$churn, Predicted_label_1)
+```
+
+
+Model_1.2 will be our final model. Let's first review the performance with AUC.
+```{r}
+library(pROC)
+roc(Data_Validation$churn, Predicted_label_1.2)
+plot(roc(Data_Validation$churn, Predicted_label_1.2), col='blue', main = "ROC for Model_1")
+```
+
+Next, let's considering the decision threshold. In our first model, using a threshold of 0.5, we have a true positive rate of 15%. The false positive rate is only 3%. 
+```{r}
+Confusion_matrix_1.2
+```
+
+
+
+Let's see if we can improve this by raising the threshold to p>0.7. 
+Now we have a 46% true positive rate! And the false positive rate is still relatively low (7%).  
+```{r}
+Predicted_values_1.2 <- as.factor(Predicted_label_1.2 > 0.7)
+head(Predicted_values_1.2)
+levels(Predicted_values_1.2) <- list(Yes = "FALSE", No = "TRUE")
+Confusion_matrix_1.2 <-table(Predicted_1.2 = Predicted_values_1.2, Actual = Data_Validation$churn)
+Confusion_matrix_1.2
+```
+
+Let's see if we can improve even more by setting the threshold to p>0.8. Setting the threshold to p>0.8. gives us a 68% true positive rate, with a 14% false positive rate.
+```{r}
+Predicted_values_1.2 <- as.factor(Predicted_label_1.2 > 0.8)
+head(Predicted_values_1.2)
+levels(Predicted_values_1.2) <- list(Yes = "FALSE", No = "TRUE")
+Confusion_matrix_1.2 <-table(Predicted_1.2 = Predicted_values_1.2, Actual = Data_Validation$churn)
+Confusion_matrix_1.2
+```
+
+What if we do p>0.9? The Tre positive rate increases to 89%, and the false positive rate increase to 36%.
+```{r}
+Predicted_values_1.2 <- as.factor(Predicted_label_1.2 > 0.9)
+head(Predicted_values_1.2)
+levels(Predicted_values_1.2) <- list(Yes = "FALSE", No = "TRUE")
+Confusion_matrix_1.2 <-table(Predicted_1.2 = Predicted_values_1.2, Actual = Data_Validation$churn)
+Confusion_matrix_1.2
+```
+
+
