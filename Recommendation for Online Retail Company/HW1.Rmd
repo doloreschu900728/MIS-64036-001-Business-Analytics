@@ -1,0 +1,148 @@
+---
+title: "HW1"
+author: "Dolores Chu"
+date: "11/20/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r cars}
+#1.	a) What is the probability of obtaining a score greater than 700 on a GMAT test that has a mean of 494 and a standard deviation of 100? Assume GMAT scores are normally distributed (5 marks).
+z<-(700-494)/100
+pnorm(z)
+p<-1-pnorm(z)
+print(p)
+# alternatively, provide mean and standard deviation directly
+p<-1 - pnorm(700, mean=494, sd=100)
+print(p)
+
+#b) What is the probability of getting a score between 350 and 450 on the same GMAT exam?(5 marks)
+z_1<-(350-494)/100
+z_2<-(450-494)/100
+p<-pnorm(z_2)-pnorm(z_1)
+print(p)
+# alternatively, provide mean and sd directly
+p<-pnorm(450, mean=494, sd=100) - pnorm(350, mean=494, sd=100)
+print(p)
+
+# c) 2.	Runzheimer International publishes business travel costs for various cities throughout the world. In particular, they publish per diem totals, which represent the average costs for the typical business traveler including three meals a day in business-class restaurants and single-rate lodging in business-class hotels and motels. If 86.65% of the per diem costs in Buenos Aires, Argentina, are less than $449 and if the standard deviation of per diem costs is $36, what is the average per diem cost in Buenos Aires? Assume that per diem costs are normally distributed (10 marks)
+#Knowig sd, x and Z score (derived from the corresponding probability), we should be able to calculate mean
+#Z = (x – mean)/sd
+x<-449
+sd<-36
+z<-qnorm(0.8665)
+mean<- (x - z*sd)
+print(mean)
+
+#3.	Chris is interested in understanding the correlation between temperature in Kent, OH and Los Angeles, CA. He has got the following data for September 2017 from Alpha Knowledgebase. (5 marks) 
+Kent<- c(59, 68, 78, 60)
+LA<- c(90, 82, 78, 75)
+Kent_Mean<-mean(Kent)
+LA_Mean<- mean(LA)
+SS_XY<- sum((Kent - Kent_Mean)*(LA - LA_Mean))
+SS_XX<- sum((Kent - Kent_Mean)^2)
+SS_YY<- sum((LA - LA_Mean)^2)
+r<-SS_XY/(SS_XX*SS_YY)^0.5
+print(r)
+
+
+# B) Data Wrangling
+#read in data
+data<- read.csv("Online_Retail.csv")
+summary(data)
+library(dplyr)
+View(summarise(group_by(data,Country), n=n(), percentage = n/nrow(data)))
+#alternatively, use piping
+data %>% group_by(Country) %>% summarise(n = n(), percentage = n/nrow(data)) %>% View()
+
+#Show only countries accounting for more than 1% of the total transactions.
+data_grouped_by_country<-data %>% group_by(Country) %>% summarise(n = n(), percentage = n/nrow(data))
+filter(data_grouped_by_country, percentage >= 0.01)
+#alternatively, use piping
+data %>% group_by(Country) %>% summarize(n = n(), percentage = n/nrow(data)) %>% filter(percentage >= 0.01)
+#How to tell R to order results by Descending order?
+
+#5.	Create a new variable ‘TransactionValue’ that is the product of the exising ‘Quantity’ and ‘UnitPrice’ variables. Add this variable to the dataframe. (5 marks)
+data$TransactionValue<- (data$Quantity) * (data$UnitPrice)
+colnames(data)
+
+#6. transaction values by countries i.e. how much money in total has been spent each country. Show this in total sum of transaction values. Show only countries with total transaction exceeding 130,000 British Pound. (10 marks)
+data %>% group_by(Country) %>% summarise(Sum_of_Transaction = sum(TransactionValue)) %>% filter(Sum_of_Transaction >= 130000)
+  
+#7
+Temp<-strptime(data$InvoiceDate, format = "%m/%d/%Y %H: %M", tz="GMT")
+head(Temp)
+data$New_Invoice_Date <- as.Date(Temp)
+data$Invoice_Date_Week <- weekdays(Temp)
+data$New_Invoice_Hour <- as.numeric(format(Temp, "%H"))
+data$New_Invoice_Month <- as.numeric(format(Temp, "%m"))
+head(data)
+
+#a)	Show the percentage of transactions (by numbers) by days of the week (extra 2 marks)
+data %>% group_by(Invoice_Date_Week) %>% summarise(Percentage_of_Trans = n()/nrow(data)) 
+
+#b)	Show the percentage of transactions (by transaction volume) by days of the week (extra 1 marks)
+data %>% group_by(Invoice_Date_Week) %>% summarise(Volume_Percentage = sum(Quantity)/sum(data$Quantity))
+
+#c)	Show the percentage of transactions (by transaction volume) by month of the year (extra 1 marks)
+data %>% group_by(New_Invoice_Month) %>% summarise(Volumne_Percentage = sum(Quantity)/sum(data$Quantity))
+
+#d)	What was the date with the highest number of transactions from Australia? (3 marks) 
+data_AU<- data[data$Country == "Australia", ] %>% group_by(New_Invoice_Date) %>% summarise(Num_of_Trans = n())
+data_AU[which.max(data_AU$Num_of_Trans),]
+
+
+#e)	The company needs to shut down the website for two consecutive hours for maintenance. What would be the hour of the day to start this so that the distribution is at minimum for the customers? The responsible IT team is available from 7:00 to 20:00 every day(3 marks)   
+volumedata <- data %>% group_by(New_Invoice_Hour) %>% summarise(Volume = sum(abs(Quantity)))
+volumedata <- volumedata[volumedata$New_Invoice_Hour >= 7 & volumedata$New_Invoice_Hour < 20,]
+volumedata_2 <- volumedata[1:(nrow(volumedata)-1), ] + volumedata[2:nrow(volumedata), ]
+volumedata_2[which.min(volumedata_2$Volume), ]
+volumedata
+volumedata_2
+#Based on the index we can know that the website volume is the lowest from 18:00 to 20:00. So the shutdown should happen during those 2 hours. 
+
+
+
+
+#8. Plot the histogram of transaction values from Germany. Use the hist() function to plot. (5 marks)
+Germany <- data %>% filter(Country == "Germany")
+hist(Germany$TransactionValue, main = "Transaction Value of Germany", xlab = "Transation Value")
+
+#9. Which customer had the highest number of transactions? Which customer is most valuable (i.e. highest total sum of transactions)? (10 marks)
+#Cutomer with the highest number of transactions 
+Trans_by_Customer <- data %>% group_by(CustomerID) %>% summarise(Num_of_Transactions = n()) %>% na.omit(Trans_by_Customer$CustomerID)
+Trans_by_Customer <- na.omit(Trans_by_Customer, col = "CustomerID")
+Trans_by_Customer[which.max(Trans_by_Customer$CustomerID), ]
+#Customer with the highest total sum of transactions
+Value_by_Customer <- data %>% group_by(CustomerID) %>% summarise(Total_Trans_Value = sum(data$TransactionValue))
+Value_by_Customer <- na.omit(Value_by_Customer, col = "CustomerID")
+Value_by_Customer[which.max(Value_by_Customer$Total_Trans_Value), ]
+
+#10.	Calculate the percentage of missing values for each variable in the dataset (5 marks). Hint colMeans():
+colMeans(is.na(data))
+
+#11.	What are the number of transactions with missing CustomerID records by countries? (10 marks)
+data %>% group_by(Country) %>% summarize(Missing_Value = sum(is.na(CustomerID)))
+
+
+#12.	On average, how often the costumers comeback to the website for their next shopping? (i.e. what is the average number of days between consecutive shopping) (Optional/Golden question: 18 additional marks!) 
+Return_time <- data %>% group_by(CustomerID) %>% summarise(Days = (max(New_Invoice_Date) - min(New_Invoice_Date))/n())
+Return_time_non_zero <- Return_time[Return_time$Days != 0, ]
+mean(Return_time_non_zero$Days)
+
+#13.	In the retail sector, it is very important to understand the return rate of the goods purchased by customers. In this example, we can define this quantity, simply, as the ratio of the number of transactions cancelled (regardless of the transaction value) over the total number of transactions. With this definition, what is the return rate for the French customers? (10 marks). Consider the cancelled transactions as those where the ‘Quantity’ variable has a negative value.
+France <- data[data$Country == "France", ]
+nrow(France[France$Quantity < 0, ])/nrow(France)
+
+#14.	What is the product that has generated the highest revenue for the retailer? (i.e. item with the highest total sum of ‘TransactionValue’)(10 marks)
+Revenue_by_item <- data %>% filter (Quantity > 0) %>% group_by(StockCode) %>% summarise(Revenue = sum(UnitPrice))
+Revenue_by_item[which.max(Revenue_by_item$Revenue), ]
+
+#15.	How many unique customers are represented in the dataset?
+length(unique(data$CustomerID))
+  
+```
+
